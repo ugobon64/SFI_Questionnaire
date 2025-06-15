@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Questionnaire Spatial Bilingue</title>
+ <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Roboto:wght@400;500&display=swap');
+    * { box-sizing: border-box; }
+    body { margin:0; padding:0; font-family:'Roboto',sans-serif; background:#000 url('Terre_Espace.jpeg') no-repeat center center fixed; background-size:cover; color:#fff; }
+    .lang-switch { position:fixed; top:1rem; right:1rem; display:flex; gap:0.5rem; z-index:100; }
+    .lang-switch input { display:none; }
+    .lang-switch label { padding:0.5rem 0.75rem; background:rgba(255,255,255,0.9); border-radius:4px; cursor:pointer; font-size:0.9rem; color:#000; transition:background 0.2s; }
+    .lang-switch input:checked + label { background:#3B82F6; color:#fff; }
+    header.hero { position:relative; height:100vh; display:flex; align-items:center; justify-content:center; }
+    header.hero.hidden { display:none; }
+    header.hero::before { content:''; position:absolute; inset:0; background:rgba(0,0,0,0.8); }
+    .hero-content { position:relative; z-index:1; width:95%; max-width:800px; text-align:center; animation:fadeIn 0.8s ease; }
+    .logo-wrapper { width:160px; height:160px; background:#fff; border-radius:50%; margin:0 auto 1rem; display:flex; align-items:center; justify-content:center; }
+    .logo-wrapper img { max-width:80%; border-radius:50%; }
+    header.hero h1 { font-family:'Orbitron',sans-serif; font-size:2.5rem; color:#fff; text-shadow:0 2px 6px rgba(0,0,0,0.7); margin-bottom:0.75rem; }
+    header.hero p { font-size:1.1rem; margin-bottom:1.75rem; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.7); }
+    .start-btn { padding:1rem 2rem; font-size:1.1rem; background:linear-gradient(90deg,#3B82F6,#2563EB); border:none; border-radius:999px; color:#fff; max-width:300px; width:auto; cursor:pointer; }
+    .container { display:none; opacity:0; transition:opacity 0.4s; padding:1rem; max-width:700px; margin:1rem auto; background:rgba(0,0,0,0.85); border-radius:12px; }
+    .container.visible { display:block; opacity:1; }
+    .progress { height:8px; background:rgba(255,255,255,0.2); border-radius:4px; margin-bottom:1rem; overflow:hidden; }
+    .progress-bar { height:100%; width:0; background:#3B82F6; transition:width 0.3s; }
+    h2 { font-family:'Orbitron',sans-serif; color:#3B82F6; font-size:1.4rem; margin:0.5rem 0; text-align:center; }
+    .options, .checkbox-group { display:grid; gap:1rem; margin-bottom:1.5rem; }
+    button, .options button { padding:1rem; font-size:1rem; background:#2563EB; color:#fff; border:none; border-radius:8px; width:100%; text-align:left; box-shadow:0 2px 6px rgba(0,0,0,0.3); cursor:pointer; }
+    button:hover { background:#1E40AF; }
+    #back-btn { background:transparent; border:2px solid #3B82F6; color:#3B82F6; }
+    .checkbox-group label { display:flex; align-items:center; gap:1rem; padding:1rem; background:rgba(255,255,255,0.1); border-radius:8px; cursor:pointer; }
+    .checkbox-group input { width:1.6rem; height:1.6rem; }
+    #email-input { width:100%; padding:1rem; font-size:1rem; border-radius:8px; border:1px solid #94A3B8; margin:1rem 0; }
+    .final-list { list-style:disc inside; margin-bottom:1rem; padding-left:1rem; }
+    .disclaimer { font-size:0.85rem; color:#ddd; margin-bottom:1.5rem; }
+    #final-btn { padding:1rem; font-size:1rem; background:linear-gradient(90deg,#3B82F6,#2563EB); color:#fff; border:none; border-radius:8px; width:100%; cursor:pointer; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+</head>
+<body>
+  <div class="lang-switch" role="radiogroup">
+    <input type="radio" id="lang-fr" name="lang" value="fr" onclick="setLang('fr')" checked><label for="lang-fr">FR</label>
+    <input type="radio" id="lang-en" name="lang" value="en" onclick="setLang('en')"><label for="lang-en">EN</label>
+  </div>
+  <header class="hero" id="hero">
+    <div class="hero-content">
+      <div class="logo-wrapper"><img src="Logo SFI V2.jpg" alt="Logo SFI"></div>
+      <h1 id="hero-title"></h1>
+      <p id="hero-subtitle"></p>
+      <button class="start-btn" id="start-btn"></button>
+    </div>
+  </header>
+  <div class="container" id="container" role="region" aria-live="polite"></div>
+  <script>
+    // Init EmailJS
+    emailjs.init('qCbIK73LjsRzH4LlK');
+    const heroEl = document.getElementById('hero'), cont = document.getElementById('container');
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbxEka2TyIetvxXiZWS1kHwGv_5WJBsAvWD13iluHQVdmxjiMZwdeiHQkryDXELat61t/exec';
+    const translations = {
+      fr: {
+        heroTitle: 'Trouvez la formation spatiale qui vous correspond en 2 minutes',
+        heroSubtitle: 'Répondez à quelques questions et recevez un aperçu personnalisé de nos formations adaptées à votre profil.',
+        start: 'Commencer', back: 'Retour', next: 'Suivant',
+        steps: [
+          { id: 'q1', title: 'Q1. Quel est votre parcours ou domaine actuel ?', options: ['Étudiant ou jeune diplômé','Ingénierie / Technologies / Recherche','Santé / Médecine / Biologie','Défense / Opérations / Pilotage','Communication / Enseignement / Vulgarisation','Design / Création / Arts','Gestion de projet / Coordination / Management','Entrepreneur / Porteur de projet','En reconversion ou réflexion professionnelle','Autre profil intéressé par le spatial (préciser)'], type: 'single' },
+          { id: 'q2', title: 'Q2. Quels domaines du spatial vous intéressent ?', subtitle: 'Vous pouvez en sélectionner plusieurs.', options: ['Missions humaines et exploration habitée','Stations en orbite et environnement spatial','Technologies : satellites, lanceurs, robotique','Sciences spatiales : astrophysique, planétologie, météo','Santé, physiologie, facteurs humains','Opérations, logistique, coordination de missions','Défense, géopolitique, cybersécurité','Industrie du New Space et innovation spatiale','Autre domaine'], type: 'multi' },
+          { id: 'q3', title: 'Q3. Quelle durée de formation vous conviendrait le mieux?', subtitle: 'Vous pouvez en sélectionner plusieurs.', options: ['1 à 5 jours — Format court et ciblé','1 à 4 semaines — Format immersif et structuré','2 à 5 mois — Format long avec progression approfondie','Je suis ouvert à plusieurs formats selon les opportunités','Autre'], type: 'multi' },
+          { id: 'q4', title: 'Q4. Quel est votre objectif principal ?', options: ['Me spécialiser ou évoluer professionnellement dans le spatial','Découvrir le secteur spatial et mieux en comprendre les enjeux','Vivre une expérience immersive et inspirante dans l’univers spatial','Me préparer à des missions habitées ou devenir astronaute'], type: 'single' },
+          { id: 'q5', title: 'Q5. Quel budget seriez-vous prêt à consacrer à une formation dans le spatial ?', options: ['Moins de 1 000 €','Entre 1 000 et 5 000 €','Entre 5 000 et 15 000 €','Plus de 15 000 €','Je n’ai pas ce budget, mais je pourrais faire financer la formation (entreprise, institution, bourse...)'], type: 'single' }
+        ],
+        finalTitle: 'Merci pour vos réponses.',
+        finalSubtitle: 'Nous avons identifié plusieurs formations qui pourraient vous correspondre.',
+        leaveEmail: 'Laissez-nous votre email pour recevoir :',
+        finalItems: ['Votre parcours personnalisé','Les prochaines sessions en avant-première'],
+        finalDisclaimer: '🔻 Vous pourrez vous désinscrire à tout moment si vous ne souhaitez plus recevoir d\'informations.',
+        finalButton: 'Recevoir mon parcours personnalisé'
+      },
+      en: {
+        heroTitle: 'Discover your path in 2 minutes',
+        heroSubtitle: 'Answer a few questions and get a personalized overview of our training programs tailored to your profile.',
+        start: 'Start', back: 'Back', next: 'Next',
+        steps: [
+          { id: 'q1', title: 'Q1. What is your background?', options: ['Student or recent graduate','Engineering / Research','Health / Medicine / Biology','Defense / Operations / Piloting','Communication / Education / Outreach','Design / Creative Arts','Project management / Coordination','Entrepreneur / Founder','Career change or exploration','Other space-interested profile'], type: 'single' },
+          { id: 'q2', title: 'Q2. Which space domains interest you?', subtitle: 'You can choose multiple options', options: ['Human missions & exploration','Orbiting stations & environment','Technologies: satellites, launchers, robotics','Space sciences: astrophysics, planetary science, space weather','Space health & physiology','Operations, logistics, mission coordination','Defense, geopolitics, cybersecurity','New Space & innovation','Other domain'], type: 'multi' },
+          { id: 'q3', title: 'Q3. Preferred training duration?', options: ['1–5 days — Short and focused format','1–4 weeks — Immersive and structured format','2–5 months — Long format with in-depth progression','I am open to several formats depending on the opportunity', 'Other'], type: 'multi' },
+          { id: 'q4', title: 'Q4. What is your main objective?', options: ['Specialize or advance professionally in the space sector','Discover the space field and better understand its challenges','Live an immersive and inspiring experience in the space world','Prepare for crewed missions or become an astronaut'], type: 'single' },
+          { id: 'q5', title: 'Q5. What budget can you allocate?', options: ['Under €1,000','€1,000–5,000','€5,000–15,000','Over €15,000','I don\'t have this budget, but I could get funding (company, institution, scholarship…)'], type: 'single' }
+        ],
+        finalTitle: 'Thank you for your responses.',
+        finalSubtitle: 'We have identified several programs that may suit you.',
+        leaveEmail: 'Leave us your email to receive:',
+        finalItems: ['Your personalized path','Upcoming sessions preview'],
+        finalDisclaimer: '🔻 You can unsubscribe at any time if you no longer wish to receive information.',
+        finalButton: 'Receive my personalized path'
+      }
+    };
+    let currentLang='fr', step=0, answers=[];
+    function setLang(l){
+  currentLang = l;
+  localStorage.setItem('lang', l);
+  document.documentElement.lang = l;
+  const t = translations[l];
+  document.getElementById('hero-title').innerText = t.heroTitle;
+  document.getElementById('hero-subtitle').innerText = t.heroSubtitle;
+  document.getElementById('start-btn').innerText = t.start;
+}
+    document.getElementById('start-btn').onclick = ()=>{ step=0; answers=[]; heroEl.classList.add('hidden'); setTimeout(()=>{ cont.classList.add('visible'); renderStep(); },500); };
+    function updateProgress(){ const total=translations[currentLang].steps.length; const pct=(step/total)*100; const pb=document.getElementById('progress-bar'); if(pb) pb.style.width=pct+'%'; }
+   function renderStep(){
+  cont.innerHTML='<div class="progress"><div class="progress-bar" id="progress-bar"></div></div>';
+  updateProgress();
+  if(step<translations[currentLang].steps.length){
+    const s=translations[currentLang].steps[step];
+    const h2=document.createElement('h2');
+    h2.innerText=s.title;
+    cont.append(h2);
+    if (s.subtitle) {
+  const p = document.createElement('p');
+  p.style.textAlign = 'center';
+  p.style.fontSize = '0.95rem';
+  p.style.color = '#ccc';
+  p.style.margin = '0.5rem 0 1rem';
+  p.innerText = s.subtitle;
+  cont.append(p);
+}
+    const opts=document.createElement('div');
+    opts.className=`options ${s.type==='single'?'single':''}`;
+    if(s.type==='single'){
+      s.options.forEach(o=>{
+        const btn=document.createElement('button');
+        btn.innerText=o.replace(': ___','');
+        btn.onclick=()=>{
+          if(o.includes('préciser')||o.includes('Other')||o.includes('autre')){
+            const input=document.createElement('input');
+            input.type='text';
+            input.placeholder=currentLang==='fr'?'Merci de préciser ici':'Please specify';
+            input.style.marginTop='1rem';
+            btn.disabled=true;
+            opts.appendChild(input);
+            const confirm=document.createElement('button');
+            confirm.innerText=currentLang==='fr'?'Valider':'Confirm';
+            confirm.onclick=()=>{
+              if(input.value.trim()){answers.push({question:s.title,response:o.replace(': ___','')+': '+input.value.trim()});step++;renderStep();}
+            };
+            opts.appendChild(confirm);
+          }else{
+            answers.push({question:s.title,response:o});step++;renderStep();
+          }
+        };
+        opts.append(btn);
+      });
+    }else{
+      const grp=document.createElement('div');
+      grp.className='checkbox-group';
+      s.options.forEach(o=>{
+        const lbl=document.createElement('label');
+        const chk=document.createElement('input');
+        chk.type='checkbox';
+        chk.value=o.replace(': ___','');
+        const txt=o.includes('Autre')||o.includes('Other')?document.createElement('input'):null;
+        if(txt){
+          txt.type='text';
+          txt.placeholder=currentLang==='fr'?'Merci de préciser ici':'Please specify';
+          txt.style.flex='1';
+          lbl.append(chk,document.createTextNode(o.replace(': ___','')),txt);
+        }else{
+          lbl.append(chk,o);
+        }
+        grp.append(lbl);
+      });
+      cont.append(grp);
+      const nxt=document.createElement('button');
+      nxt.innerText=translations[currentLang].next;
+      nxt.onclick=()=>{
+        const checked=grp.querySelectorAll('input[type="checkbox"]:checked');
+        if(!checked.length)return;
+        checked.forEach(i=>{
+          const label=i.closest('label');
+          const textInput=label.querySelector('input[type="text"]');
+          const value=textInput?i.value+': '+textInput.value.trim():i.value;
+          answers.push({question:s.title,response:value});
+        });
+        step++;
+        renderStep();
+      };
+      opts.append(nxt);
+    }
+    cont.append(opts);
+    const backBtn=document.createElement('button');
+    backBtn.id='back-btn';
+    backBtn.innerText=translations[currentLang].back;
+    backBtn.onclick=goBack;
+    cont.append(backBtn);
+  }else showThanks();
+}
+    function goBack(){if(step>0){step--;const s=translations[currentLang].steps[step];if(s.type==='single')answers.pop();else answers=answers.filter(a=>a.question!==s.title);renderStep();}else{answers=[];step=0;cont.classList.remove('visible');heroEl.classList.remove('hidden');}}
+    function showThanks(){cont.innerHTML='';const t=translations[currentLang];const title=document.createElement('h2');title.innerText=t.finalTitle;cont.append(title);const sub=document.createElement('p');sub.innerText=t.finalSubtitle;cont.append(sub);const leave=document.createElement('p');leave.innerText=t.leaveEmail;cont.append(leave);const list=document.createElement('ul');list.className='final-list';t.finalItems.forEach(i=>{const li=document.createElement('li');li.innerText=i;list.append(li);});cont.append(list);const input=document.createElement('input');input.id='email-input';input.type='email';input.placeholder=(currentLang==='fr'?'Votre e-mail':'Your email');cont.append(input);const err=document.createElement('div');err.id='error-msg';cont.append(err);const disclaimer=document.createElement('p');disclaimer.className='disclaimer';disclaimer.innerText=t.finalDisclaimer;cont.append(disclaimer);const btn=document.createElement('button');
+btn.id='final-btn';
+btn.innerText=t.finalButton;
+btn.onclick=sendEmail;
+cont.append(btn);
+
+const skipBtn=document.createElement('button');
+skipBtn.id='skip-btn';
+skipBtn.style.marginTop = '1rem';
+skipBtn.style.background = '#555';
+skipBtn.innerText=currentLang==='fr'?'Non merci, je ne suis plus intéressé':'No thanks, I\'m not interested';
+skipBtn.onclick=()=>{
+  const tempEmail = 'anon_' + Math.random().toString(36).substring(2, 10) + '@noemail.com';
+  fetch(scriptUrl, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: tempEmail, answers: answers })
+  });
+  setTimeout(() => {
+    answers = [];
+    step = 0;
+    cont.classList.remove('visible');
+    heroEl.classList.remove('hidden');
+    setLang(currentLang);
+  }, 1000);
+};
+cont.append(skipBtn);}  
+
+
+    function sendEmail() {
+  const email = document.getElementById('email-input').value;
+  const err = document.getElementById('error-msg');
+  err.innerText = '';
+  if (!email || !/\S+@\S+\.\S+/.test(email)) {
+    err.innerText = (currentLang === 'fr' ? 'Adresse email invalide.' : 'Invalid email.');
+    return;
+  }
+
+  const objective = answers.find(a =>
+  a.question.toLowerCase().includes('objectif') || a.question.toLowerCase().includes('objective')
+)?.response || '';
+  let recommendation = '';
+  const lower = objective.toLowerCase();
+
+  if (lower.includes('spécialiser ou évoluer') || lower.includes('specialize or advance')) {
+    recommendation = `<p> You are considering specializing or advancing your career in the space sector. That’s exactly what the Spaceflight Institute was designed for.<br>
+We offer:<br>
+<br>
+<strong>The Human Spaceflight Certificate</strong> (HSC): a 5-month intensive program (currently being certified by ISAE-Supaero), designed to prepare professionals for careers in human spaceflight.<br>
+<br>
+
+<strong>Short courses</strong> (1 to 5 days) focusing on specific topics such as human factors, orbital environments, and spacecraft systems architecture.<br>
+
+<br>
+These formats are compatible with professional activity and can be funded through various mechanisms.</p>`;
+  } else if (lower.includes('découvrir') || lower.includes('discover the space')) {
+    recommendation = `<p> Your goal is to gain a better understanding of the space sector. We offer several accessible and engaging options.<br>
+We organize:<br>
+<br>
+<strong>Introductory short courses</strong>  (1 to 3 days), open to all backgrounds, offering a foundation in human spaceflight and New Space dynamics.<br>
+<br>
+
+<strong>Workshops and conferences</strong>  led by experts from CNES, ESA, and leading industry players.<br>
+
+<br>
+These sessions are an excellent way to broaden your perspective and explore professional opportunities in this growing sector.</p>`;
+  } else if (lower.includes('immersive') || lower.includes('live an immersive')) {
+    recommendation = `<p> You're looking to live an immersive and inspiring experience in the world of space exploration. We’ve designed several unique formats:<br>
+    <br>
+<strong>Hands-on modules</strong> from our Commercial Astronaut Certificate (CAC): centrifuge training, zero-G flights, lunar simulations, and more.<br>
+
+<br>
+<strong>Survival training</strong> in extreme environments, modeled on astronaut preparation.<br>
+
+<br>
+<strong>Analog missions</strong> and immersive seminars focused on working in isolated, high-pressure conditions.<br>
+<br>
+
+All experiences are led by experts and open to motivated participants, regardless of background.
+</p>`;
+  } else if (lower.includes('astronaute') || lower.includes('astronaut') || lower.includes('mission habitée') || lower.includes('prepare for crewed mission')) {
+    recommendation = `<p> Your goal is to participate in a human space mission — or even to pursue a path toward becoming an astronaut. We’ve built a structured training pathway to support you.<br>
+It includes:<br>
+<br>
+<strong>The Human Spaceflight Certificate</strong> (HSC): a certified 5-month theoretical program designed to build core knowledge.<br>
+
+<br>
+<strong>The Commercial Astronaut Certificate</strong> (CAC): a 12-month practical training combining physical preparation, technical simulations, and field expeditions.<br>
+<br>
+
+This dual-path approach meets the standards of space agencies while remaining accessible to professionals from scientific, technical, or entrepreneurial backgrounds.
+</p>`;
+  } else {
+    recommendation = `<p>We’re currently analyzing your profile. Our team will reach out with tailored suggestions soon.</p>`;
+  }
+
+  const htmlContent = recommendation;
+
+  emailjs.send('service_4v728l8','template_e0541mh',{ to_email: email, message: htmlContent })
+    .then(() => alert(currentLang === 'fr' ? 'E-mail envoyé !' : 'Email sent!'))
+    .catch(e => {
+      console.error('EmailJS Error:', e);
+      alert('Erreur lors de l\'envoi de l\'email : ' + (e?.text || JSON.stringify(e)));
+    });
+
+  fetch(scriptUrl, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, answers: answers })
+  });
+
+  setTimeout(() => {
+    answers = [];
+    step = 0;
+    cont.classList.remove('visible');
+    heroEl.classList.remove('hidden');
+    setLang(currentLang);
+  }, 5000);
+}
+
+
+    window.onload = () => {
+  emailjs.init('qCbIK73LjsRzH4LlK');
+  const savedLang = localStorage.getItem('lang');
+  if (savedLang) {
+    setLang(savedLang);
+    document.getElementById(`lang-${savedLang}`).checked = true;
+  } else {
+    setLang('fr');
+  }
+    };
+  </script>
+</body>
+</html>
