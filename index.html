@@ -298,7 +298,9 @@ This dual-path approach meets the standards of space agencies while remaining ac
   const htmlContent = recommendation;
 
   emailjs.send('service_4v728l8','template_e0541mh',{ to_email: email, message: htmlContent })
-    .then(() => alert(currentLang === 'fr' ? 'E-mail envoyé !' : 'Email sent!'))
+    .then(() => {
+      cont.innerHTML = '<h2 style="text-align:center">' + (currentLang === 'fr' ? 'Merci, votre email a bien été envoyé.' : 'Thank you, your email has been sent.') + '</h2>';
+    })
     .catch(e => {
       console.error('EmailJS Error:', e);
       alert('Erreur lors de l\'envoi de l\'email : ' + (e?.text || JSON.stringify(e)));
@@ -322,14 +324,14 @@ This dual-path approach meets the standards of space agencies while remaining ac
 
 
     window.onload = () => {
-  emailjs.send('service_4v728l8','template_e0541mh',{ to_email: email, message: htmlContent })
-    .then(() => {
-      cont.innerHTML = '<h2 style="text-align:center">' + (currentLang === 'fr' ? 'Merci, votre email a bien été envoyé.' : 'Thank you, your email has been sent.') + '</h2>';
-    })
-    .catch(e => {
-      console.error('EmailJS Error:', e);
-      alert('Erreur lors de l\'envoi de l\'email : ' + (e?.text || JSON.stringify(e)));
-    });
+  emailjs.init('qCbIK73LjsRzH4LlK');
+  const savedLang = localStorage.getItem('lang');
+  if (savedLang) {
+    setLang(savedLang);
+    document.getElementById(`lang-${savedLang}`).checked = true;
+  } else {
+    setLang('fr');
+  }
     };
   </script>
 </body>
